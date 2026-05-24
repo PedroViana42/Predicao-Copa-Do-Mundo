@@ -26,6 +26,11 @@ df = pd.read_csv("matches.csv")
 
 
 df["resultado"] = df.apply(definir_resultado, axis=1)
+ano_minimo = df["year"].min()
+ano_maximo = df["year"].max()
+df["peso_recencia"] = 1 + 4 * (
+    (df["year"] - ano_minimo) / (ano_maximo - ano_minimo)
+)
 
 
 # =========================
@@ -33,51 +38,73 @@ df["resultado"] = df.apply(definir_resultado, axis=1)
 # =========================
 
 time_a = df[[
+    "year",
     "team_a_name",
     "team_a_score",
     "team_b_score",
     "team_a_win",
     "team_b_win",
-    "draw"
+    "draw",
+    "peso_recencia"
 ]].copy()
 
 time_a.columns = [
+    "ano",
     "team",
     "gols_marcados",
     "gols_sofridos",
     "vitoria",
     "derrota",
-    "empate"
+    "empate",
+    "peso_recencia"
 ]
 
 time_b = df[[
+    "year",
     "team_b_name",
     "team_b_score",
     "team_a_score",
     "team_b_win",
     "team_a_win",
-    "draw"
+    "draw",
+    "peso_recencia"
 ]].copy()
 
 time_b.columns = [
+    "ano",
     "team",
     "gols_marcados",
     "gols_sofridos",
     "vitoria",
     "derrota",
-    "empate"
+    "empate",
+    "peso_recencia"
 ]
 
 historico_times = pd.concat([time_a, time_b])
 
-stats = historico_times.groupby("team").agg(
-    jogos=("team", "count"),
-    media_gols_marcados=("gols_marcados", "mean"),
-    media_gols_sofridos=("gols_sofridos", "mean"),
-    taxa_vitoria=("vitoria", "mean"),
-    taxa_empate=("empate", "mean"),
-    taxa_derrota=("derrota", "mean")
-).reset_index()
+
+def media_ponderada(grupo, coluna):
+    return (grupo[coluna] * grupo["peso_recencia"]).sum() / grupo["peso_recencia"].sum()
+
+
+def calcular_stats_ponderadas(grupo):
+    return pd.Series({
+        "jogos": len(grupo),
+        "media_gols_marcados": media_ponderada(grupo, "gols_marcados"),
+        "media_gols_sofridos": media_ponderada(grupo, "gols_sofridos"),
+        "taxa_vitoria": media_ponderada(grupo, "vitoria"),
+        "taxa_empate": media_ponderada(grupo, "empate"),
+        "taxa_derrota": media_ponderada(grupo, "derrota"),
+    })
+
+
+stats = (
+    historico_times
+    .groupby("team")
+    .apply(calcular_stats_ponderadas, include_groups=False)
+    .reset_index()
+)
 
 
 # =========================

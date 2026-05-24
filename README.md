@@ -75,6 +75,8 @@ Depois, o codigo cria estatisticas historicas para cada selecao, considerando jo
 
 Essas estatisticas sao usadas como atributos numericos para treinar o modelo.
 
+As estatisticas usam ponderacao por recencia: jogos mais novos recebem peso maior que jogos antigos. Assim, Copas recentes influenciam mais a previsao do que partidas muito antigas.
+
 ## Exemplo de previsao
 
 No final do script existe um teste com:
